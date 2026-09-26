@@ -46,16 +46,12 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # --- CAMBIO CLAVE AQUÍ ---
-      # Eliminamos la acción 'setup-android' que estaba fallando.
-      # Usamos sdkmanager directamente desde la línea de comandos.
-      
       - name: Install Android SDK Command Line Tools
         run: |
           sudo apt-get update
           sudo apt-get install -y wget unzip
           
-          # Descargar herramientas CLI específicas (versión estable reciente)
+          # Descargar herramientas CLI específicas
           wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
           
           # Crear estructura de carpetas obligatoria
@@ -63,20 +59,16 @@ jobs:
           unzip -q cmdline-tools.zip -d $HOME/cmdline-tools
           mv $HOME/cmdline-tools/cmdline-tools $HOME/cmdline-tools/latest
           
-          # Definir variables de entorno para este step y siguientes
+          # Definir variables de entorno PARA ESTE STEP Y SIGUIENTES
           export ANDROID_HOME=$HOME
           export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
           
           # Aceptar licencias silenciosamente
           yes | sdkmanager --licenses || true
           
-          # Instalar plataforma y build-tools necesarios según tu app/build.gradle.kts
-          # Tu app pide compileSdk = 34
+          # Instalar plataforma y build-tools necesarios
           sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew || true
-        
       - name: Generate Gradle Wrapper (if missing)
         run: |
           # Si no existe gradlew, lo creamos con docker o instalando gradle globalmente temporalmente
@@ -91,12 +83,9 @@ jobs:
 
       - name: Build debug APK
         env:
-          ANDROID_HOME: ${{ github.workspace }}/../home/runner # Ajuste relativo o absoluto
+          ANDROID_HOME: $HOME
+          PATH: ${{ env.PATH }}:${{ env.ANDROID_HOME }}/cmdline-tools/latest/bin:${{ env.ANDROID_HOME }}/platform-tools
         run: |
-          # Exportamos nuevamente por seguridad en este shell específico
-          export ANDROID_HOME=$HOME
-          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
-          
           ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK artifact
